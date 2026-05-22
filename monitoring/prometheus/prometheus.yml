@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 5s # Fréquence de collecte des métriques (très réactif pour la démo)
+  evaluation_interval: 5s
+
+# Configuration des cibles de collecte (Scraping)
+scrape_configs:
+  # 1. Prometheus lui-même (s'auto-surveille)
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 2. Notre backend Express Node.js
+  - job_name: 'todo-backend-api'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['todo-backend:5000'] # Utilise la résolution DNS interne Docker Compose

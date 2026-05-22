@@ -4,12 +4,16 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
 import todoRoutes from './routes/todoRoutes.js';
 import prisma from './config/db.js';
+import { requestMonitoring, metricsEndpoint } from './middleware/monitoring.js';
 
 // Charger les variables d'environnement
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Enregistrer le middleware de collecte des métriques en premier
+app.use(requestMonitoring);
 
 // Configuration des middlewares globaux
 app.use(cors({
@@ -22,6 +26,9 @@ app.use(express.json());
 // Routes applicatives
 app.use('/api/auth', authRoutes);
 app.use('/api/todos', todoRoutes);
+
+// Endpoint d'exposition des métriques Prometheus
+app.get('/metrics', metricsEndpoint);
 
 // Endpoint de vérification de l'état (Healthcheck)
 // Utile pour Docker, Kubernetes ou les load balancers

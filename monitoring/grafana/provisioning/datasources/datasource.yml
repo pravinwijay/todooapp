@@ -1,0 +1,9 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://todo-prometheus:9090 # Résolution DNS DNS interne Docker Compose
+    isDefault: true
+    editable: true
