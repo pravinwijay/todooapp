@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # BASE DE DONNÉES : PostgreSQL
+  # ==========================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: todo-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_secure_password_123
+      POSTGRES_DB: todoapp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d todoapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - todo-network
+
+  # ==========================================
+  # BASE DE DONNÉES : pgAdmin (UI de gestion)
+  # ==========================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: todo-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@devops.com
+      PGADMIN_DEFAULT_PASSWORD: admin_password_123
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - todo-network
+
+  # ==========================================
+  # BACKEND : API REST Node.js (Express + Prisma)
+  # ==========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: todo-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: development
+      DATABASE_URL: "postgresql://postgres:postgres_secure_password_123@postgres:5432/todoapp?schema=public"
+      JWT_SECRET: "super_secret_dev_key_change_me_in_production"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Script d'init pour appliquer les migrations Prisma automatiquement au démarrage
+    entrypoint: >
+      sh -c "npx prisma db push && node src/app.js"
+    networks:
+      - todo-network
+
+  # ==========================================
+  # FRONTEND : Application React (Servie par Nginx)
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend-web
+      dockerfile: Dockerfile
+      args:
+        # Indique au build React d'adresser les requêtes sur l'API externe (depuis le navigateur)
+        - VITE_API_URL=http://localhost:5000/api
+    container_name: todo-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - todo-network
+
+  # ==========================================
+  # MONITORING : Prometheus
+  # ==========================================
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: todo-prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    depends_on:
+      - backend
+    networks:
+      - todo-network
+
+  # ==========================================
+  # MONITORING : Grafana
+  # ==========================================
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: todo-grafana
+    restart: always
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - todo-network
+
+networks:
+  todo-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
