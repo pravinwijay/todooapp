@@ -35,13 +35,13 @@ ENV PORT=5000
 # Installer OpenSSL requis par le Query Engine de Prisma sous Alpine
 RUN apk add --no-cache openssl
 
-# Copier le package.json et les dépendances élaguées du builder
-COPY --from=builder /usr/src/app/package*.json ./
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/src ./src
-COPY --from=builder /usr/src/app/prisma ./prisma
+# Copier le package.json et les dépendances élaguées du builder avec les bons droits d'accès
+COPY --chown=node:node --from=builder /usr/src/app/package*.json ./
+COPY --chown=node:node --from=builder /usr/src/app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /usr/src/app/src ./src
+COPY --chown=node:node --from=builder /usr/src/app/prisma ./prisma
 
-# Créer un utilisateur non-privilégié pour la sécurité du conteneur
+# Utiliser l'utilisateur non-privilégié pour la sécurité du conteneur
 USER node
 
 # Exposer le port de l'API

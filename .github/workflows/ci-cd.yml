@@ -36,10 +36,15 @@ jobs:
       - name: 🛠️ Générer le Client Prisma
         working-directory: ./backend
         run: npm run prisma:generate
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/todoapp?schema=public"
 
       - name: 🧪 Exécuter les tests unitaires
         working-directory: ./backend
         run: npm run test
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/todoapp?schema=public"
+          JWT_SECRET: "test_secret_key_for_github_actions"
 
   # -------------------------------------------------------------
   # JOB 2 : COMPILATION & PUBLICATION (DÉPLOIEMENT CONTINU)
