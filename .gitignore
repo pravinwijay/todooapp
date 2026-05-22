@@ -1,0 +1,52 @@
+# Dépendances de paquets
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Fichiers d'environnement et secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+
+# Base de données locale & Prisma
+/backend/prisma/dev.db
+/backend/prisma/dev.db-journal
+
+# Outils de build & Bundlers
+dist/
+build/
+.svelte-kit/
+.next/
+
+# Logs système et applicatifs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Éditeurs de code et IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# Fichiers Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+terraform.tfvars
+
+# Ansible
+*.retry
