@@ -52,7 +52,7 @@ services:
     container_name: todo-backend
     restart: always
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       PORT: 5000
       NODE_ENV: development
@@ -76,7 +76,7 @@ services:
       dockerfile: Dockerfile
       args:
         # Indique au build React d'adresser les requêtes sur l'API externe (depuis le navigateur)
-        - VITE_API_URL=http://localhost:5000/api
+        - VITE_API_URL=http://localhost:5001/api
     container_name: todo-frontend
     restart: always
     ports:

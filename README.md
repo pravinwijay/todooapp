@@ -82,6 +82,6 @@ docker-compose up --build
 
 L'application sera alors accessible aux adresses suivantes :
 *   **Frontend React** : `http://localhost:3000`
-*   **Backend API Express** : `http://localhost:5000`
+*   **Backend API Express** : `http://localhost:5001`
 *   **Prometheus** : `http://localhost:9090`
 *   **Grafana** : `http://localhost:3001`
