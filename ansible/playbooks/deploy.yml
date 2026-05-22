@@ -1,0 +1,162 @@
+# =================================================================
+# 🚀 PLAYBOOK ANSIBLE : PROVISIONING & DEPLOIEMENT DE PRODUCTION
+# =================================================================
+- name: Installer Docker, configurer Nginx et deployer la Todo App
+  hosts: production
+  become: true
+  vars:
+    project_path: "/home/ubuntu/todo-app"
+    docker_username: "YOUR_DOCKERHUB_USERNAME" # Remplacer par ton username Docker Hub
+    domain_name: "todo.yourdomain.com" # Optionnel : Nom de domaine pour le SSL HTTPS
+
+  tasks:
+    # -------------------------------------------------------------
+    # 1. PREPARATION SYSTEME & DEPENDANCES
+    # -------------------------------------------------------------
+    - name: 🔄 Mettre à jour le cache apt du système
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600
+
+    - name: 📦 Installer les utilitaires système indispensables
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - git
+          - nginx
+          - certbot
+          - python3-certbot-nginx
+        state: present
+
+    # -------------------------------------------------------------
+    # 2. INSTALLATION DE DOCKER & DOCKER COMPOSE
+    # -------------------------------------------------------------
+    - name: 🔑 Ajouter la clé GPG officielle de Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: 📁 Ajouter le dépôt officiel Docker APT
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_facts['distribution_release'] }} stable"
+        state: present
+
+    - name: 📦 Installer Docker Engine et son plugin Compose
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+
+    - name: 🟢 S'assurer que le service Docker est démarré et activé
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: 👤 Ajouter l'utilisateur ubuntu au groupe docker (sécurité)
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    # -------------------------------------------------------------
+    # 3. CONFIGURATION NGINX COMME REVERSE PROXY
+    # -------------------------------------------------------------
+    - name: 📝 Configurer le fichier de virtual host Nginx
+      copy:
+        dest: "/etc/nginx/sites-available/todo-app"
+        content: |
+          server {
+              listen 80;
+              server_name localhost {{ domain_name }};
+
+              # Redirection vers le frontend React
+              location / {
+                  proxy_pass http://localhost:3000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_cache_bypass $http_upgrade;
+              }
+
+              # Redirection vers l'API Express
+              location /api {
+                  proxy_pass http://localhost:5000/api;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_cache_bypass $http_upgrade;
+              }
+          }
+
+    - name: 🔗 Activer la configuration Nginx en créant le lien symbolique
+      file:
+        src: "/etc/nginx/sites-available/todo-app"
+        dest: "/etc/nginx/sites-enabled/todo-app"
+        state: link
+
+    - name: 🗑️ Supprimer le virtual host Nginx par défaut (conflit de port 80)
+      file:
+        path: "/etc/nginx/sites-enabled/default"
+        state: absent
+
+    - name: 🔄 Recharger Nginx pour appliquer les modifications
+      service:
+        name: nginx
+        state: reloaded
+
+    # -------------------------------------------------------------
+    # 4. PREPARATION DU REPERTOIRE DE DEPLOIEMENT & FICHIERS
+    # -------------------------------------------------------------
+    - name: 📁 Créer le dossier d'accueil du projet
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+      loop:
+        - "{{ project_path }}"
+        - "{{ project_path }}/monitoring"
+        - "{{ project_path }}/monitoring/prometheus"
+        - "{{ project_path }}/monitoring/grafana"
+        - "{{ project_path }}/monitoring/grafana/provisioning"
+
+    - name: 📤 Copier le docker-compose.yml local vers le serveur
+      copy:
+        src: "../../docker-compose.yml"
+        dest: "{{ project_path }}/docker-compose.yml"
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    # -------------------------------------------------------------
+    # 5. DEPLOIEMENT & LANCEMENT DES CONTENEURS
+    # -------------------------------------------------------------
+    - name: 🐳 Récupérer les dernières images de production depuis Docker Hub
+      shell: "docker compose -f {{ project_path }}/docker-compose.yml pull"
+      become_user: ubuntu
+
+    - name: 🚀 Lancer tous les conteneurs en tâche de fond (detached mode)
+      shell: "docker compose -f {{ project_path }}/docker-compose.yml up -d"
+      become_user: ubuntu
+
+    # -------------------------------------------------------------
+    # 6. CONFIGURATION SSL HTTPS OPTIONNELLE (CERTBOT)
+    # -------------------------------------------------------------
+    # Cette tâche est désactivée par défaut car elle nécessite un nom de domaine réel
+    # Pour l'activer, changez 'false' par 'true' une fois votre domaine configuré
+    - name: 🔒 Générer le certificat SSL Let's Encrypt et configurer HTTPS
+      shell: "certbot --nginx -d {{ domain_name }} --non-interactive --agree-tos --email webmaster@{{ domain_name }}"
+      when: false
