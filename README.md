@@ -1,4 +1,5 @@
-# 📝 Todo App - DevOps Enterprise Pipeline & Monorepo
+# 
+# 📝 Todo App - Module DevOps - Entièrement généré par l'IA.
 
 Ce projet est une application complète de gestion de tâches (Todo App) conçue avec une approche de production moderne. Elle combine une stack technique robuste à une suite DevOps avancée couvrant l'Intégration Continue, le Déploiement Continu, l'Infrastructure as Code (IaC) et l'Observabilité totale (Monitoring/Alerting).
 
